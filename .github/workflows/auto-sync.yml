@@ -1,0 +1,23 @@
+name: Auto Sync Upstream
+
+on:
+  schedule:
+    # 每6小时检查一次原作者是否更新
+    - cron: "0 */6 * * *"
+
+  # 允许手动运行测试
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Sync fork with upstream
+        run: |
+          gh repo sync "${{ github.repository }}" --branch main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
