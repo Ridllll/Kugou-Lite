@@ -2,10 +2,8 @@ name: Auto Sync Upstream
 
 on:
   schedule:
-    # 每6小时检查一次原作者是否更新
-    - cron: "0 */6 * * *"
-
-  # 允许手动运行测试
+    # 每天 UTC 17:00（北京时间 01:00）运行，早于北京时间 01:15 签到
+    - cron: "0 17 * * *"
   workflow_dispatch:
 
 permissions:
@@ -14,10 +12,24 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
-
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Sync fork with upstream
-        run: |
-          gh repo sync "${{ github.repository }}" --branch main
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          if ! gh repo sync "$REPO" --branch main --source descendggv/Kugou-Lite; then
+            echo "gh repo sync 失败，尝试使用 git 同步上游..."
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git remote add upstream https://github.com/descendggv/Kugou-Lite.git || git remote set-url upstream https://github.com/descendggv/Kugou-Lite.git
+            git fetch upstream main
+            git checkout main
+            git merge upstream/main --no-edit
+            git push origin main
+          fi
